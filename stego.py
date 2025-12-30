@@ -107,9 +107,48 @@ def hide_payload(imgFile, payload, hide_pattern):
 
     out = Image.frombytes("RGB", img.size, bytes(img_bytes))
     out.save("hidden.png")
+    return payload_len
 
     
 
 
+def extract_bits(byte, hide_pattern_list):
+    # Extract the bits indicated in hide_pattern_list
+    extraced = []
+    bits_from_byte = obtain_bits(byte)
+    for i in range(8):
+        if hide_pattern_list[i]: # If hide_patter_list[i] == 1
+            extraced.append(bits_from_byte[i])
+    
+    return extraced
 
+def recover_secret(file, payload_length, hide_pattern):
 
+    if hide_pattern == 0x00: # The pattern cannot be 0x00 because no bits would be replaced
+        print("Error, the provided pattern does not allow hiding")
+        return
+    
+    hide_pattern_list = obtain_bits(hide_pattern) # Store the hide_pattern binary representation in a list
+    
+    with Image.open(file) as img: 
+        img = img.convert("RGB")
+        img_bytes = bytearray(img.tobytes()) # Obtain a bytearray of RGB values
+
+    recovered_payload = []
+
+    recovered_bytes = 0
+    bits = []
+    current_byte = 0
+
+    while recovered_bytes < payload_length:
+        bits = bits + extract_bits(img_bytes[current_byte], hide_pattern_list) # Concat the extracted bits to our currently retrieved list
+        current_byte += 1
+
+        if len(bits) >= 8: # Whenever we extract at least 8 bits, take that byte and store it in recovered_payload
+            recovered_payload.append(obtain_byte(bits[:8]))
+            del bits[:8]
+            recovered_bytes += 1
+
+    
+    with open("recovered_payload", "wb") as f:
+        f.write(bytes(recovered_bytes))
