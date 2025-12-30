@@ -151,4 +151,4 @@ def recover_secret(file, payload_length, hide_pattern):
 
     
     with open("recovered_payload", "wb") as f:
-        f.write(bytes(recovered_bytes))
+        f.write(bytes(recovered_payload))
