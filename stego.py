@@ -59,7 +59,7 @@ def hide_payload(imgFile, payload, hide_pattern):
     hide_pattern_list = obtain_bits(hide_pattern) # Store the hide_pattern binary representation in a list
 
     bits_amount_to_hide = hide_pattern_list.count(1) # Amount of bits to hide in each byte
-    hide_amount_bytes = math.ceil(len(pd) * 8 / bits_amount_to_hide) # How many bytes in total are required to hide the complete payload
+    hide_amount_bytes = math.ceil(len(payload_bytes) * 8 / bits_amount_to_hide) # How many bytes in total are required to hide the complete payload
 
     with Image.open(imgFile) as img: 
         img = img.convert("RGB")
