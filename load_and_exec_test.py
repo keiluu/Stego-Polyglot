@@ -1,4 +1,4 @@
-from ..src.mem_loader import *
+from mem_loader import *
 
 with open("/usr/bin/ls", "rb") as f:
     data = f.read()
