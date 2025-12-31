@@ -87,6 +87,8 @@ def hide_payload(imgFile, payload, hide_pattern):
             for i in range (8 - len(truncated_pattern)): # Fill the rest of the pattern with 0
                 truncated_pattern.append(0)
 
+            hide_pattern_list = truncated_pattern[:] # Set the hide_pattern to the truncated one
+
 
 
 
