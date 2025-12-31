@@ -9,6 +9,7 @@ def obtain_bits(value):
     
     return bits
 
+
 def obtain_byte(bits):
     # Given a list of bits calculate the decimal value of the corresponding byte
     if len(bits) != 8:
@@ -124,6 +125,8 @@ def extract_bits(byte, hide_pattern_list):
     
     return extraced
 
+
+
 def recover_secret(file, payload_length, hide_pattern):
 
     if hide_pattern == 0x00: # The pattern cannot be 0x00 because no bits would be replaced
@@ -154,3 +157,48 @@ def recover_secret(file, payload_length, hide_pattern):
     
     with open("recovered_payload", "wb") as f:
         f.write(bytes(recovered_payload))
+
+def copy_bytes(source, dest, start, n, offset_src, offset_dst):
+    # Copy n bytes starting at start from source to dest
+    for i in range(start, start + n):
+        dest[i + offset_dst] = source[i + offset_src]
+
+
+
+def hide_in_jpeg_header(payload, jpeg_file):
+    with open(jpeg_file, "rb") as img:
+        img_bytes = img.read()
+
+    with open(payload, "rb") as pd:
+        payload_bytes = pd.read()
+
+    previous_header_len = img_bytes[4]*256 + img_bytes[5] # In JPEG header bytes 4 and 5 indicate the size of the header
+    injected_img = bytearray(len(img_bytes) + len(payload_bytes) + 2) # Reserve space for the additional payload + 2 for the line skip (0D 0A)
+
+    for i in range(previous_header_len): # Copy the information from the old header but remove any 0x00 since they may prevent the code execution
+        if img_bytes[i] == 0x00: 
+            injected_img[i] = 0x01
+        
+        else:
+            injected_img[i] = img_bytes[i]
+    
+    # Set the new size of the header in the new image
+    injected_img[4] = len(injected_img) // 256
+    injected_img[5] = len(injected_img) % 256
+
+    # Insert line skip 0D 0A so that when the code interpreter reaches this point the previous contents written in the header do not interfere with the code
+    injected_img[previous_header_len] = 0x0D
+    injected_img[previous_header_len + 1] = 0x0A
+
+    # Inject the payload
+    copy_bytes(payload_bytes, injected_img, 0, len(payload_bytes), 0, previous_header_len + 2) 
+
+    # Copy the rest of the contents of the image (the pixel values)
+    copy_bytes(img_bytes, injected_img, 0, len(img_bytes) - previous_header_len, previous_header_len, previous_header_len + len(payload_bytes) + 2)
+
+    with open('injected.jpeg', 'wb') as out:
+        out.write(injected_img)
+
+
+
+    
