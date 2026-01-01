@@ -174,6 +174,7 @@ def hide_in_jpeg_header(payload, jpeg_file):
 
     previous_header_len = img_bytes[4]*256 + img_bytes[5] # In JPEG header bytes 4 and 5 indicate the size of the header
     injected_img = bytearray(len(img_bytes) + len(payload_bytes) + 2) # Reserve space for the additional payload + 2 for the line skip (0D 0A)
+    new_header_len = previous_header_len + len(payload_bytes) + 2
 
     for i in range(previous_header_len): # Copy the information from the old header but remove any 0x00 since they may prevent the code execution
         if img_bytes[i] == 0x00: 
@@ -183,8 +184,8 @@ def hide_in_jpeg_header(payload, jpeg_file):
             injected_img[i] = img_bytes[i]
     
     # Set the new size of the header in the new image
-    injected_img[4] = len(injected_img) // 256
-    injected_img[5] = len(injected_img) % 256
+    injected_img[4] = new_header_len // 256
+    injected_img[5] = new_header_len % 256
 
     # Insert line skip 0D 0A so that when the code interpreter reaches this point the previous contents written in the header do not interfere with the code
     injected_img[previous_header_len] = 0x0D
@@ -193,8 +194,8 @@ def hide_in_jpeg_header(payload, jpeg_file):
     # Inject the payload
     copy_bytes(payload_bytes, injected_img, 0, len(payload_bytes), 0, previous_header_len + 2) 
 
-    # Copy the rest of the contents of the image (the pixel values)
-    copy_bytes(img_bytes, injected_img, 0, len(img_bytes) - previous_header_len, previous_header_len, previous_header_len + len(payload_bytes) + 2)
+    # Copy the rest of the contents of the image
+    copy_bytes(img_bytes, injected_img, 0, len(img_bytes) - previous_header_len, previous_header_len, new_header_len)
 
     with open('injected.jpeg', 'wb') as out:
         out.write(injected_img)
