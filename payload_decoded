@@ -92,4 +92,4 @@ def load_and_exec(src_bytes):
 # Here I will call the code that using the functions above extracts and executes the payload.
 # I will hardcode the file names and payload sizes and other vars used for the sake of simplicity:
 
-load_and_exec(recover_secret('hidden.png', 158632, 0x0f))
+load_and_exec(recover_secret('hidden.png', 250, 0x0f))
